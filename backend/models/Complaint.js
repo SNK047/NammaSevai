@@ -1,63 +1,97 @@
-const mongoose = require('mongoose');
+const supabase = require('../config/supabase');
 
-const complaintSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  title: {
-    type: String,
-    required: [true, 'Complaint title is required'],
-    maxlength: [100, 'Title cannot exceed 100 characters'],
-  },
-  category: {
-    type: String,
-    required: true,
-    enum: ['Road', 'Water', 'Electricity', 'Sanitation', 'Street Light', 'Others'],
-  },
-  description: {
-    type: String,
-    required: [true, 'Description is required'],
-    maxlength: [1000, 'Description cannot exceed 1000 characters'],
-  },
-  imageURL: {
-    type: String,
-    default: '',
-  },
-  location: {
-    address: { type: String, default: '' },
-    city: { type: String, default: '' },
-    coordinates: {
-      lat: { type: Number },
-      lng: { type: Number },
-    },
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'in_progress', 'resolved', 'rejected'],
-    default: 'pending',
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'medium',
-  },
-  adminNotes: {
-    type: String,
-    default: '',
-  },
-  resolvedAt: {
-    type: Date,
-  },
-  isPublic: {
-    type: Boolean,
-    default: true,
-  },
-  upvotes: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  }],
-}, { timestamps: true });
+const Complaint = {
+  table: 'complaints',
 
-module.exports = mongoose.model('Complaint', complaintSchema);
+  async findById(id) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
+  },
+
+  async create(complaintData) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .insert([{
+        user_id: complaintData.user,
+        title: complaintData.title,
+        category: complaintData.category,
+        description: complaintData.description,
+        image_url: complaintData.imageURL || null,
+        address: complaintData.location?.address || null,
+        city: complaintData.location?.city || null,
+        lat: complaintData.location?.coordinates?.lat || null,
+        lng: complaintData.location?.coordinates?.lng || null,
+        status: complaintData.status || 'pending',
+        priority: complaintData.priority || 'medium',
+        admin_notes: complaintData.adminNotes || null,
+        resolved_at: complaintData.resolvedAt || null,
+        is_public: complaintData.isPublic !== false,
+        upvotes: []
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id, complaintData) {
+    const updateData = {};
+    if (complaintData.status) updateData.status = complaintData.status;
+    if (complaintData.priority) updateData.priority = complaintData.priority;
+    if (complaintData.adminNotes !== undefined) updateData.admin_notes = complaintData.adminNotes;
+    if (complaintData.resolvedAt) updateData.resolved_at = complaintData.resolvedAt;
+
+    const { data, error } = await supabase
+      .from(this.table)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getAll(filters = {}) {
+    let query = supabase.from(this.table).select('*');
+
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.category) {
+      query = query.eq('category', filters.category);
+    }
+    if (filters.isPublic) {
+      query = query.eq('is_public', true);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async upvote(complaintId, userId) {
+    const complaint = await this.findById(complaintId);
+    if (!complaint) return null;
+
+    const upvotes = complaint.upvotes || [];
+    if (!upvotes.includes(userId)) {
+      upvotes.push(userId);
+      const { data, error } = await supabase
+        .from(this.table)
+        .update({ upvotes })
+        .eq('id', complaintId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    return complaint;
+  }
+};
+
+module.exports = Complaint;

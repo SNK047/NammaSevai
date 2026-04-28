@@ -1,13 +1,13 @@
 const ServiceRequest = require('../models/ServiceRequest');
 const Worker = require('../models/Worker');
+const supabase = require('../config/supabase');
 
-// @route   POST /api/services/request
 exports.createRequest = async (req, res) => {
   try {
     const { workerId, serviceType, description, scheduledDate, address } = req.body;
 
     const worker = await Worker.findById(workerId);
-    if (!worker || !worker.isApproved) {
+    if (!worker || !worker.is_approved) {
       return res.status(404).json({ success: false, error: 'Worker not found or not approved.' });
     }
 
@@ -20,49 +20,76 @@ exports.createRequest = async (req, res) => {
       address,
     });
 
-    await request.populate([
-      { path: 'user', select: 'name phone' },
-      { path: 'worker', populate: { path: 'user', select: 'name phone' } },
-    ]);
+    const { data: userData } = await supabase
+      .from('users')
+      .select('name, phone')
+      .eq('id', req.user.id)
+      .single();
 
-    res.status(201).json({ success: true, message: 'Service request sent!', request });
+    const { data: workerUser } = await supabase
+      .from('users')
+      .select('name, phone')
+      .eq('id', worker.user_id)
+      .single();
+
+    res.status(201).json({
+      success: true,
+      message: 'Service request sent!',
+      request: { ...request, user: userData, worker: { ...worker, user: workerUser } }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// @route   GET /api/services/my-requests
 exports.getMyRequests = async (req, res) => {
   try {
-    const requests = await ServiceRequest.find({ user: req.user.id })
-      .populate({ path: 'worker', populate: { path: 'user', select: 'name avatar phone' } })
-      .sort({ createdAt: -1 });
+    const requests = await ServiceRequest.getByUser(req.user.id);
 
-    res.json({ success: true, requests });
+    const requestsWithPopulate = await Promise.all(
+      requests.map(async (request) => {
+        const worker = await Worker.findById(request.worker_id);
+        const { data: workerUser } = await supabase
+          .from('users')
+          .select('name, avatar, phone')
+          .eq('id', worker?.user_id)
+          .single();
+        return { ...request, worker: { ...worker, user: workerUser } };
+      })
+    );
+
+    res.json({ success: true, requests: requestsWithPopulate });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// @route   GET /api/services/worker-requests
 exports.getWorkerRequests = async (req, res) => {
   try {
-    const worker = await Worker.findOne({ user: req.user.id });
+    const worker = await Worker.findByUserId(req.user.id);
     if (!worker) {
       return res.status(404).json({ success: false, error: 'Worker profile not found.' });
     }
 
-    const requests = await ServiceRequest.find({ worker: worker._id })
-      .populate('user', 'name avatar phone location')
-      .sort({ createdAt: -1 });
+    const requests = await ServiceRequest.getByWorker(worker.id);
 
-    res.json({ success: true, requests });
+    const requestsWithUser = await Promise.all(
+      requests.map(async (request) => {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, avatar, phone, city, address')
+          .eq('id', request.user_id)
+          .single();
+        return { ...request, user: userData };
+      })
+    );
+
+    res.json({ success: true, requests: requestsWithUser });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// @route   PUT /api/services/:id/status
 exports.updateStatus = async (req, res) => {
   try {
     const { status, notes, finalCost } = req.body;
@@ -72,31 +99,28 @@ exports.updateStatus = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid status.' });
     }
 
-    const request = await ServiceRequest.findById(req.params.id)
-      .populate({ path: 'worker', select: 'user' });
+    const request = await ServiceRequest.findById(req.params.id);
 
     if (!request) {
       return res.status(404).json({ success: false, error: 'Request not found.' });
     }
 
-    // Only the assigned worker can update status
-    const isWorkerOwner = request.worker.user.toString() === req.user.id;
-    const isUserCancelling = request.user.toString() === req.user.id && status === 'cancelled';
+    const worker = await Worker.findById(request.worker_id);
+    const isWorkerOwner = worker?.user_id === req.user.id;
+    const isUserCancelling = request.user_id === req.user.id && status === 'cancelled';
 
     if (!isWorkerOwner && !isUserCancelling && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized.' });
     }
 
-    request.status = status;
-    if (notes) request.notes = notes;
-    if (finalCost) request.finalCost = finalCost;
+    const updateData = { status, notes, finalCost };
     if (status === 'completed') {
-      request.completedAt = new Date();
-      await Worker.findByIdAndUpdate(request.worker._id, { $inc: { totalJobs: 1 } });
+      updateData.completedAt = new Date().toISOString();
+      await Worker.incrementJobs(worker.id);
     }
 
-    await request.save();
-    res.json({ success: true, message: 'Status updated', request });
+    const updated = await ServiceRequest.update(req.params.id, updateData);
+    res.json({ success: true, message: 'Status updated', request: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

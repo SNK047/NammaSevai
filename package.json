@@ -1,0 +1,11 @@
+{
+  "name": "nammasevai",
+  "version": "1.0.0",
+  "description": "NammaSevai - Hyperlocal Service Finder",
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "dev": "echo Use 'npm run frontend' or 'npm run backend' in separate terminals",
+    "build": "cd frontend && npm run build"
+  }
+}

@@ -3,10 +3,13 @@ import { HiLocationMarker, HiBriefcase, HiStar } from 'react-icons/hi';
 import { Avatar, AvailabilityBadge } from '../common';
 
 export default function WorkerCard({ worker }) {
-  const { user, skills, experience, rating, availability, _id } = worker;
+  const { user, skills, experience, rating, availability, id, _id, rating_average, rating_count } = worker;
+  const workerId = id || _id;
+  const avgRating = rating?.average || rating_average || 0;
+  const count = rating?.count || rating_count || 0;
 
   return (
-    <Link to={`/workers/${_id}`} className="block">
+    <Link to={`/workers/${workerId}`} className="block">
       <div className="card-hover group">
         {/* Header */}
         <div className="flex items-start gap-3 mb-4">
@@ -17,7 +20,7 @@ export default function WorkerCard({ worker }) {
             </h3>
             <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs mt-0.5">
               <HiLocationMarker className="w-3 h-3" />
-              <span className="truncate">{user?.location?.city || 'Location not set'}</span>
+              <span className="truncate">{user?.city || user?.location?.city || 'Location not set'}</span>
             </div>
             <div className="mt-1.5">
               <AvailabilityBadge availability={availability} />
@@ -41,8 +44,8 @@ export default function WorkerCard({ worker }) {
         <div className="flex items-center justify-between text-sm border-t border-gray-50 dark:border-gray-700 pt-3">
           <div className="flex items-center gap-1 text-yellow-500">
             <HiStar className="w-4 h-4" />
-            <span className="font-semibold text-gray-800 dark:text-gray-200">{rating?.average?.toFixed(1) || '0.0'}</span>
-            <span className="text-gray-400 text-xs">({rating?.count || 0})</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">{avgRating.toFixed(1)}</span>
+            <span className="text-gray-400 text-xs">({count})</span>
           </div>
           <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs">
             <HiBriefcase className="w-3.5 h-3.5" />

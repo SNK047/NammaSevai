@@ -1,37 +1,46 @@
 const Worker = require('../models/Worker');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const supabase = require('../config/supabase');
 
-// @route   GET /api/workers
-// @desc    Get all approved workers with filters
 exports.getWorkers = async (req, res) => {
   try {
     const { skill, city, availability, minRating, page = 1, limit = 12 } = req.query;
 
-    // Build filter query
-    const workerFilter = { isApproved: true };
-    if (skill) workerFilter.skills = { $in: [skill] };
-    if (availability) workerFilter.availability = availability;
-    if (minRating) workerFilter['rating.average'] = { $gte: parseFloat(minRating) };
-    if (city) workerFilter['serviceArea.city'] = new RegExp(city, 'i');
+    let workers = await Worker.getAll({ isApproved: true, availability, skill });
+
+    if (minRating) {
+      workers = workers.filter(w => w.rating_average >= parseFloat(minRating));
+    }
+
+    if (city) {
+      const cityLower = city.toLowerCase();
+      workers = workers.filter(w => w.service_city?.toLowerCase().includes(cityLower));
+    }
+
+    workers.sort((a, b) => b.rating_average - a.rating_average);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedWorkers = workers.slice(skip, skip + parseInt(limit));
 
-    const workers = await Worker.find(workerFilter)
-      .populate('user', 'name avatar location phone')
-      .sort({ 'rating.average': -1, createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Worker.countDocuments(workerFilter);
+    const workersWithUser = await Promise.all(
+      paginatedWorkers.map(async (worker) => {
+        const { data: user } = await supabase
+          .from('users')
+          .select('name, avatar, phone, city, address')
+          .eq('id', worker.user_id)
+          .single();
+        return { ...worker, user };
+      })
+    );
 
     res.json({
       success: true,
-      workers,
+      workers: workersWithUser,
       pagination: {
-        total,
+        total: workers.length,
         page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        pages: Math.ceil(workers.length / parseInt(limit)),
       },
     });
   } catch (error) {
@@ -39,74 +48,101 @@ exports.getWorkers = async (req, res) => {
   }
 };
 
-// @route   GET /api/workers/:id
 exports.getWorkerById = async (req, res) => {
   try {
-    const worker = await Worker.findById(req.params.id)
-      .populate('user', 'name avatar location phone email');
+    const worker = await Worker.findById(req.params.id);
 
     if (!worker) {
       return res.status(404).json({ success: false, error: 'Worker not found.' });
     }
 
-    const reviews = await Review.find({ worker: worker._id })
-      .populate('user', 'name avatar')
-      .sort({ createdAt: -1 })
-      .limit(10);
+    const { data: user } = await supabase
+      .from('users')
+      .select('name, avatar, phone, email, city, address')
+      .eq('id', worker.user_id)
+      .single();
 
-    res.json({ success: true, worker, reviews });
+    const reviews = await Review.getByWorker(worker.id);
+
+    const reviewsWithUser = await Promise.all(
+      reviews.slice(0, 10).map(async (review) => {
+        const { data: reviewUser } = await supabase
+          .from('users')
+          .select('name, avatar')
+          .eq('id', review.user_id)
+          .single();
+        return { ...review, user: reviewUser };
+      })
+    );
+
+    res.json({ success: true, worker: { ...worker, user }, reviews: reviewsWithUser });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// @route   GET /api/workers/my-profile
 exports.getMyWorkerProfile = async (req, res) => {
   try {
-    const worker = await Worker.findOne({ user: req.user.id })
-      .populate('user', 'name avatar location phone email');
+    const worker = await Worker.findByUserId(req.user.id);
 
     if (!worker) {
       return res.status(404).json({ success: false, error: 'Worker profile not found.' });
     }
 
-    res.json({ success: true, worker });
+    const { data: user } = await supabase
+      .from('users')
+      .select('name, avatar, phone, email, city, address')
+      .eq('id', worker.user_id)
+      .single();
+
+    res.json({ success: true, worker: { ...worker, user } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// @route   PUT /api/workers/my-profile
 exports.updateWorkerProfile = async (req, res) => {
   try {
     const { skills, description, experience, hourlyRate, availability, serviceArea } = req.body;
 
-    const worker = await Worker.findOneAndUpdate(
-      { user: req.user.id },
-      { skills, description, experience, hourlyRate, availability, serviceArea },
-      { new: true, runValidators: true }
-    ).populate('user', 'name avatar location phone email');
+    const worker = await Worker.findByUserId(req.user.id);
 
     if (!worker) {
       return res.status(404).json({ success: false, error: 'Worker profile not found.' });
     }
 
-    res.json({ success: true, message: 'Profile updated', worker });
+    const updated = await Worker.update(worker.id, {
+      skills,
+      description,
+      experience,
+      hourlyRate,
+      availability,
+      serviceArea
+    });
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('name, avatar, phone, email, city, address')
+      .eq('id', worker.user_id)
+      .single();
+
+    res.json({ success: true, message: 'Profile updated', worker: { ...updated, user } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// @route   PUT /api/workers/availability
 exports.updateAvailability = async (req, res) => {
   try {
     const { availability } = req.body;
-    const worker = await Worker.findOneAndUpdate(
-      { user: req.user.id },
-      { availability },
-      { new: true }
-    );
-    res.json({ success: true, message: 'Availability updated', availability: worker.availability });
+    const worker = await Worker.findByUserId(req.user.id);
+
+    if (!worker) {
+      return res.status(404).json({ success: false, error: 'Worker profile not found.' });
+    }
+
+    const updated = await Worker.update(worker.id, { availability });
+    res.json({ success: true, message: 'Availability updated', availability: updated.availability });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

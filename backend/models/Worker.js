@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const supabase = require('../config/supabase');
 
 const SKILL_CATEGORIES = {
   SkilledTrades: ['Electrician', 'Plumber', 'Carpenter', 'Mechanic', 'Welder', 'Mason', 'Painter', 'Blacksmith', 'HVAC Technician', 'Roofer', 'Tailor', 'Driver', 'Machine Operator'],
@@ -14,57 +14,154 @@ const SKILL_CATEGORIES = {
 
 const ALL_SKILLS = Object.values(SKILL_CATEGORIES).flat();
 
-const workerSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    unique: true,
-  },
-  skills: [{
-    type: String,
-    enum: ALL_SKILLS,
-  }],
-  category: {
-    type: String,
-    enum: Object.keys(SKILL_CATEGORIES),
-    default: 'SkilledTrades',
-  },
-  description: {
-    type: String,
-    maxlength: [500, 'Description cannot exceed 500 characters'],
-  },
-  experience: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 50,
-  },
-  hourlyRate: {
-    type: Number,
-    default: 0,
-  },
-  availability: {
-    type: String,
-    enum: ['available', 'busy', 'offline'],
-    default: 'available',
-  },
-  rating: {
-    average: { type: Number, default: 0, min: 0, max: 5 },
-    count: { type: Number, default: 0 },
-  },
-  totalJobs: { type: Number, default: 0 },
-  isApproved: { type: Boolean, default: false },
-  documents: [{
-    type: String,
-  }],
-  serviceArea: {
-    city: { type: String, default: '' },
-    radius: { type: Number, default: 10 },
-  },
-}, { timestamps: true });
+const Worker = {
+  table: 'workers',
+  SKILL_CATEGORIES,
+  ALL_SKILLS,
 
-workerSchema.statics.SKILL_CATEGORIES = SKILL_CATEGORIES;
-workerSchema.statics.ALL_SKILLS = ALL_SKILLS;
+  async findById(id) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
+  },
 
-module.exports = mongoose.model('Worker', workerSchema);
+  async findByUserId(userId) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    if (error) return null;
+    return data;
+  },
+
+  async create(workerData) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .insert([{
+        user_id: workerData.user,
+        skills: workerData.skills || [],
+        category: workerData.category || 'SkilledTrades',
+        description: workerData.description || null,
+        experience: workerData.experience || 0,
+        hourly_rate: workerData.hourlyRate || 0,
+        availability: workerData.availability || 'available',
+        rating_average: 0,
+        rating_count: 0,
+        total_jobs: 0,
+        is_approved: true,
+        documents: workerData.documents || [],
+        service_city: workerData.serviceArea?.city || null,
+        service_radius: workerData.serviceArea?.radius || 10
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id, workerData) {
+    const updateData = {};
+    if (workerData.skills) updateData.skills = workerData.skills;
+    if (workerData.category) updateData.category = workerData.category;
+    if (workerData.description !== undefined) updateData.description = workerData.description;
+    if (workerData.experience !== undefined) updateData.experience = workerData.experience;
+    if (workerData.hourlyRate !== undefined) updateData.hourly_rate = workerData.hourlyRate;
+    if (workerData.availability) updateData.availability = workerData.availability;
+    if (workerData.documents) updateData.documents = workerData.documents;
+    if (workerData.serviceArea) {
+      if (workerData.serviceArea.city) updateData.service_city = workerData.serviceArea.city;
+      if (workerData.serviceArea.radius) updateData.service_radius = workerData.serviceArea.radius;
+    }
+    if (workerData.isApproved !== undefined) updateData.is_approved = workerData.isApproved;
+
+    const { data, error } = await supabase
+      .from(this.table)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getAll(filters = {}) {
+    let query = supabase.from(this.table).select('*');
+
+    if (filters.category) {
+      query = query.eq('category', filters.category);
+    }
+    if (filters.availability) {
+      query = query.eq('availability', filters.availability);
+    }
+    if (filters.isApproved) {
+      query = query.eq('is_approved', filters.isApproved);
+    }
+    if (filters.skill) {
+      query = query.contains('skills', [filters.skill]);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async search(query, city) {
+    let supabaseQuery = supabase
+      .from(this.table)
+      .select('*')
+      .eq('is_approved', true)
+      .eq('availability', 'available');
+
+    if (city) {
+      supabaseQuery = supabaseQuery.ilike('service_city', `%${city}%`);
+    }
+
+    const { data, error } = await supabaseQuery;
+    if (error) throw error;
+
+    if (query) {
+      const q = query.toLowerCase();
+      return data.filter(w => 
+        w.skills?.some(s => s.toLowerCase().includes(q)) ||
+        w.description?.toLowerCase().includes(q) ||
+        w.category?.toLowerCase().includes(q)
+      );
+    }
+    return data;
+  },
+
+  async updateRating(workerId) {
+    const { data: reviews, error } = await supabase
+      .from('reviews')
+      .select('rating')
+      .eq('worker_id', workerId);
+
+    if (error || !reviews.length) return;
+
+    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    await supabase
+      .from(this.table)
+      .update({
+        rating_average: Math.round(avgRating * 10) / 10,
+        rating_count: reviews.length
+      })
+      .eq('id', workerId);
+  },
+
+  async incrementJobs(workerId) {
+    const worker = await this.findById(workerId);
+    if (worker) {
+      await supabase
+        .from(this.table)
+        .update({ total_jobs: (worker.total_jobs || 0) + 1 })
+        .eq('id', workerId);
+    }
+  }
+};
+
+module.exports = Worker;

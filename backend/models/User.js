@@ -1,64 +1,94 @@
-const mongoose = require('mongoose');
+const supabase = require('../config/supabase');
 const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    maxlength: [50, 'Name cannot exceed 50 characters'],
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
-    select: false, // Don't return password by default
-  },
-  phone: {
-    type: String,
-    match: [/^[6-9]\d{9}$/, 'Please provide a valid Indian phone number'],
-  },
-  role: {
-    type: String,
-    enum: ['user', 'worker', 'admin'],
-    default: 'user',
-  },
-  avatar: {
-    type: String,
-    default: '',
-  },
-  location: {
-    address: { type: String, default: '' },
-    city: { type: String, default: '' },
-    state: { type: String, default: '' },
-    pincode: { type: String, default: '' },
-    coordinates: {
-      lat: { type: Number },
-      lng: { type: Number },
-    },
-  },
-  isActive: { type: Boolean, default: true },
-  isVerified: { type: Boolean, default: false },
-  refreshToken: { type: String, select: false },
-}, { timestamps: true });
+const User = {
+  table: 'users',
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
+  async findById(id) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
+  },
 
-// Compare password method
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  async findByEmail(email) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+    if (error) return null;
+    return data;
+  },
+
+  async create(userData) {
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+    const { data, error } = await supabase
+      .from(this.table)
+      .insert([{
+        name: userData.name,
+        email: userData.email.toLowerCase(),
+        password: hashedPassword,
+        phone: userData.phone || null,
+        role: userData.role || 'user',
+        avatar: userData.avatar || null,
+        address: userData.location?.address || null,
+        city: userData.location?.city || null,
+        state: userData.location?.state || null,
+        pincode: userData.location?.pincode || null,
+        lat: userData.location?.coordinates?.lat || null,
+        lng: userData.location?.coordinates?.lng || null,
+        is_active: true,
+        is_verified: false
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id, userData) {
+    const updateData = {};
+    if (userData.name) updateData.name = userData.name;
+    if (userData.phone) updateData.phone = userData.phone;
+    if (userData.avatar) updateData.avatar = userData.avatar;
+    if (userData.location) {
+      if (userData.location.address) updateData.address = userData.location.address;
+      if (userData.location.city) updateData.city = userData.location.city;
+      if (userData.location.state) updateData.state = userData.location.state;
+      if (userData.location.pincode) updateData.pincode = userData.location.pincode;
+      if (userData.location.coordinates) {
+        updateData.lat = userData.location.coordinates.lat;
+        updateData.lng = userData.location.coordinates.lng;
+      }
+    }
+    updateData.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from(this.table)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async comparePassword(user, candidatePassword) {
+    return await bcrypt.compare(candidatePassword, user.password);
+  },
+
+  async getAll() {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

@@ -1,14 +1,12 @@
-const mongoose = require('mongoose');
+const supabase = require('./supabase');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    const { data, error } = await supabase.from('users').select('id').limit(1);
+    if (error) throw error;
+    console.log('✅ Supabase Connected');
   } catch (error) {
-    console.error(`❌ MongoDB Error: ${error.message}`);
+    console.error(`❌ Supabase Error: ${error.message}`);
     process.exit(1);
   }
 };

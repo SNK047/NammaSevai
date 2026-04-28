@@ -1,0 +1,15 @@
+{
+  "$schema": "https://railway.app/schema.json",
+  "name": "nammasevai-backend",
+  "services": {
+    "web": {
+      "build": {
+        "builder": "NIXPACKS_BUILD_CLI",
+        "buildCommand": "npm install",
+        "startCommand": "npm start"
+      },
+      "source": "backend",
+      "environment": {}
+    }
+  }
+}

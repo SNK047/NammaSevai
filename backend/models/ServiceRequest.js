@@ -1,73 +1,90 @@
-const mongoose = require('mongoose');
+const supabase = require('../config/supabase');
 
-const ALL_SKILLS = [
-  // Skilled Trades
-  'Electrician', 'Plumber', 'Carpenter', 'Mechanic', 'Welder', 'Mason', 'Painter', 'Blacksmith', 
-  'HVAC Technician', 'Roofer', 'Tailor', 'Driver', 'Machine Operator',
-  // Education
-  'Tutor', 'Teacher', 'Professor', 'Trainer', 'Librarian', 'Research Assistant',
-  // Healthcare
-  'Doctor', 'Nurse', 'Pharmacist', 'Lab Technician', 'Physiotherapist', 'Paramedic', 'Caregiver', 'Dentist',
-  // Food & Hospitality
-  'Chef', 'Waiter', 'Bartender', 'Hotel Receptionist', 'Housekeeping', 'Catering Worker', 'Baker',
-  // Construction
-  'Civil Engineer', 'Surveyor', 'Site Supervisor', 'Heavy Equipment Operator', 'Road Worker', 'Architect',
-  // Retail & Services
-  'Shopkeeper', 'Cashier', 'Salesperson', 'Delivery Worker', 'Beautician', 'Security Guard', 'Cleaner',
-  // Agriculture
-  'Farmer', 'Gardener', 'Fisherman', 'Agricultural Technician', 'Forestry Worker',
-  // Technology
-  'IT Technician', 'Software Developer', 'Data Entry Operator', 'Graphic Designer', 'Accountant', 'Clerk',
-  // Creative & Media
-  'Artist', 'Photographer', 'Videographer', 'Musician', 'Actor', 'Writer'
-];
+const ServiceRequest = {
+  table: 'service_requests',
 
-const serviceRequestSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+  async findById(id) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
   },
-  worker: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Worker',
-    required: true,
-  },
-  serviceType: {
-    type: String,
-    required: true,
-    enum: ALL_SKILLS,
-  },
-  description: {
-    type: String,
-    required: [true, 'Please describe the work needed'],
-    maxlength: [500, 'Description cannot exceed 500 characters'],
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'accepted', 'rejected', 'in_progress', 'completed', 'cancelled'],
-    default: 'pending',
-  },
-  scheduledDate: {
-    type: Date,
-  },
-  address: {
-    type: String,
-    required: true,
-  },
-  estimatedCost: {
-    type: Number,
-    default: 0,
-  },
-  finalCost: {
-    type: Number,
-  },
-  notes: {
-    type: String,
-  },
-  completedAt: {
-    type: Date,
-  },
-}, { timestamps: true });
 
-module.exports = mongoose.model('ServiceRequest', serviceRequestSchema);
+  async create(requestData) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .insert([{
+        user_id: requestData.user,
+        worker_id: requestData.worker,
+        service_type: requestData.serviceType,
+        description: requestData.description,
+        status: requestData.status || 'pending',
+        scheduled_date: requestData.scheduledDate || null,
+        address: requestData.address,
+        estimated_cost: requestData.estimatedCost || 0,
+        final_cost: requestData.finalCost || null,
+        notes: requestData.notes || null,
+        completed_at: requestData.completedAt || null
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id, requestData) {
+    const updateData = {};
+    if (requestData.status) updateData.status = requestData.status;
+    if (requestData.scheduledDate) updateData.scheduled_date = requestData.scheduledDate;
+    if (requestData.estimatedCost !== undefined) updateData.estimated_cost = requestData.estimatedCost;
+    if (requestData.finalCost !== undefined) updateData.final_cost = requestData.finalCost;
+    if (requestData.notes) updateData.notes = requestData.notes;
+    if (requestData.completedAt) updateData.completed_at = requestData.completedAt;
+
+    const { data, error } = await supabase
+      .from(this.table)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getByUser(userId) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getByWorker(workerId) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('worker_id', workerId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getAll(filters = {}) {
+    let query = supabase.from(this.table).select('*');
+
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+};
+
+module.exports = ServiceRequest;

@@ -1,44 +1,66 @@
-const mongoose = require('mongoose');
+const supabase = require('../config/supabase');
+const Worker = require('./Worker');
 
-const reviewSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  worker: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Worker',
-    required: true,
-  },
-  serviceRequest: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ServiceRequest',
-  },
-  rating: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 5,
-  },
-  comment: {
-    type: String,
-    maxlength: [300, 'Review cannot exceed 300 characters'],
-  },
-}, { timestamps: true });
+const Review = {
+  table: 'reviews',
 
-// One review per user per worker
-reviewSchema.index({ user: 1, worker: 1 }, { unique: true });
+  async findById(id) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
+  },
 
-// After save, update worker's average rating
-reviewSchema.post('save', async function () {
-  const Worker = require('./Worker');
-  const reviews = await this.constructor.find({ worker: this.worker });
-  const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-  await Worker.findByIdAndUpdate(this.worker, {
-    'rating.average': Math.round(avgRating * 10) / 10,
-    'rating.count': reviews.length,
-  });
-});
+  async create(reviewData) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .insert([{
+        user_id: reviewData.user,
+        worker_id: reviewData.worker,
+        service_request_id: reviewData.serviceRequest || null,
+        rating: reviewData.rating,
+        comment: reviewData.comment || null
+      }])
+      .select()
+      .single();
+    if (error) throw error;
 
-module.exports = mongoose.model('Review', reviewSchema);
+    await Worker.updateRating(reviewData.worker);
+    return data;
+  },
+
+  async getByWorker(workerId) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('worker_id', workerId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getByUser(userId) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async hasReviewed(userId, workerId) {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('id')
+      .eq('user_id', userId)
+      .eq('worker_id', workerId)
+      .maybeSingle();
+    return !!data;
+  }
+};
+
+module.exports = Review;

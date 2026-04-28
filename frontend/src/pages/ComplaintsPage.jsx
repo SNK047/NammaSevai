@@ -37,7 +37,7 @@ export default function ComplaintsPage() {
     if (!isAuthenticated) return toast.error('Please login to upvote');
     try {
       const { data } = await complaintAPI.upvote(id);
-      setComplaints((prev) => prev.map((c) => c._id === id ? { ...c, upvotes: Array(data.upvotes).fill(null) } : c));
+      setComplaints((prev) => prev.map((c) => (c.id === id || c._id === id) ? { ...c, upvotes: Array(data.upvotes).fill(null) } : c));
     } catch {
       toast.error('Failed to upvote');
     }
@@ -45,7 +45,7 @@ export default function ComplaintsPage() {
 
   const stats = {
     total: pagination.total || 0,
-    pending: complaints.filter(c => c.status === 'pending').length,
+    pending: complaints.filter(c => c.status === 'pending' || c.status === 'in_progress').length,
     resolved: complaints.filter(c => c.status === 'resolved').length,
   };
 
@@ -71,7 +71,7 @@ export default function ComplaintsPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: 'Total', value: pagination.total || 0, color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' },
-          { label: 'Pending', value: complaints.filter(c => c.status === 'pending').length, color: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600' },
+          { label: 'Pending', value: complaints.filter(c => c.status === 'pending' || c.status === 'in_progress').length, color: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600' },
           { label: 'Resolved', value: complaints.filter(c => c.status === 'resolved').length, color: 'bg-green-50 dark:bg-green-900/20 text-green-600' },
         ].map((s) => (
           <div key={s.label} className={`${s.color} rounded-2xl p-4 text-center`}>
@@ -117,11 +117,11 @@ export default function ComplaintsPage() {
           title="No complaints found"
           message="Be the first to report a civic issue in your area."
           action={<Link to={isAuthenticated ? '/complaints/new' : '/login'} className="btn-primary">Raise a Complaint</Link>}
-        />
+      />
       ) : (
         <div className="space-y-4">
           {complaints.map((complaint) => (
-            <ComplaintCard key={complaint._id} complaint={complaint} onUpvote={handleUpvote} />
+            <ComplaintCard key={complaint.id || complaint._id} complaint={complaint} onUpvote={handleUpvote} />
           ))}
         </div>
       )}

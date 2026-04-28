@@ -9,7 +9,9 @@ const categoryIcons = {
 };
 
 export default function ComplaintCard({ complaint, onUpvote }) {
-  const { title, category, description, status, location, user, upvotes, createdAt, _id } = complaint;
+  const { title, category, description, status, location, user, upvotes, createdAt, created_at, id, _id } = complaint;
+  const complaintId = id || _id;
+  const createdTime = createdAt || created_at;
 
   return (
     <div className="card hover:shadow-md transition-all duration-200">
@@ -18,7 +20,7 @@ export default function ComplaintCard({ complaint, onUpvote }) {
         <div className="flex items-start gap-2">
           <span className="text-2xl">{categoryIcons[category] || '📋'}</span>
           <div>
-            <Link to={`/complaints/${_id}`} className="font-semibold text-gray-900 dark:text-white hover:text-primary-600 transition-colors line-clamp-1">
+            <Link to={`/complaints/${complaintId}`} className="font-semibold text-gray-900 dark:text-white hover:text-primary-600 transition-colors line-clamp-1">
               {title}
             </Link>
             <span className="text-xs text-gray-400">{category}</span>
@@ -31,8 +33,8 @@ export default function ComplaintCard({ complaint, onUpvote }) {
       <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">{description}</p>
 
       {/* Image if present */}
-      {complaint.imageURL && (
-        <img src={complaint.imageURL} alt="Complaint" className="w-full h-32 object-cover rounded-xl mb-3" />
+      {(complaint.imageURL || complaint.image_url) && (
+        <img src={complaint.imageURL || complaint.image_url} alt="Complaint" className="w-full h-32 object-cover rounded-xl mb-3" />
       )}
 
       {/* Meta */}
@@ -42,17 +44,17 @@ export default function ComplaintCard({ complaint, onUpvote }) {
             <Avatar src={user?.avatar} name={user?.name} size="sm" />
             <span>{user?.name}</span>
           </div>
-          {location?.city && (
+          {(location?.city || complaint.city) && (
             <div className="flex items-center gap-1">
               <HiLocationMarker className="w-3 h-3" />
-              <span>{location.city}</span>
+              <span>{location?.city || complaint.city}</span>
             </div>
           )}
         </div>
         <div className="flex items-center gap-3">
           {onUpvote && (
             <button
-              onClick={() => onUpvote(_id)}
+              onClick={() => onUpvote(complaintId)}
               className="flex items-center gap-1 hover:text-primary-500 transition-colors"
             >
               <HiThumbUp className="w-3.5 h-3.5" />
@@ -61,7 +63,7 @@ export default function ComplaintCard({ complaint, onUpvote }) {
           )}
           <div className="flex items-center gap-1">
             <HiClock className="w-3 h-3" />
-            <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+            <span>{formatDistanceToNow(new Date(createdTime), { addSuffix: true })}</span>
           </div>
         </div>
       </div>
