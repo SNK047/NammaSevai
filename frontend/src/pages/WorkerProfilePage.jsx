@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { HiLocationMarker, HiBriefcase, HiPhone, HiMail, HiStar } from 'react-icons/hi';
 import { workerAPI, serviceAPI } from '../services/api';
+import { WhatsAppService, SMSService } from '../utils/notifications';
 import useAuthStore from '../context/authStore';
 import { PageLoader, StarRating, AvailabilityBadge, Avatar, StarPicker } from '../components/common';
 import toast from 'react-hot-toast';
@@ -55,7 +56,10 @@ export default function WorkerProfilePage() {
   if (loading) return <PageLoader />;
   if (!worker) return null;
 
-  const { user: workerUser, skills, experience, rating, availability, description, hourlyRate, totalJobs } = worker;
+  const { user: workerUser, skills, experience, rating, availability, description, hourly_rate, hourlyRate, total_jobs, totalJobs } = worker;
+  const workerRate = hourlyRate || hourly_rate || 0;
+  const workerJobs = totalJobs || total_jobs || 0;
+  const workerRating = rating?.average || rating?.count ? rating : { average: worker.rating_average || 0, count: worker.rating_count || 0 };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
@@ -78,18 +82,18 @@ export default function WorkerProfilePage() {
             <div className="flex flex-wrap gap-4 mt-4 text-sm">
               <div className="flex items-center gap-1 text-yellow-500">
                 <HiStar className="w-4 h-4" />
-                <span className="font-bold text-gray-800 dark:text-white">{rating?.average?.toFixed(1) || '0.0'}</span>
-                <span className="text-gray-400">({rating?.count || 0} reviews)</span>
+                <span className="font-bold text-gray-800 dark:text-white">{workerRating?.average?.toFixed(1) || '0.0'}</span>
+                <span className="text-gray-400">({workerRating?.count || 0} reviews)</span>
               </div>
               <div className="flex items-center gap-1 text-gray-500">
                 <HiBriefcase className="w-4 h-4" />
                 <span>{experience} years experience</span>
               </div>
               <div className="text-gray-500">
-                <span className="font-medium text-gray-800 dark:text-white">{totalJobs}</span> jobs completed
+                <span className="font-medium text-gray-800 dark:text-white">{workerJobs}</span> jobs completed
               </div>
-              {hourlyRate > 0 && (
-                <div className="text-green-600 font-medium">₹{hourlyRate}/hr</div>
+              {workerRate > 0 && (
+                <div className="text-green-600 font-medium">₹{workerRate}/hr</div>
               )}
             </div>
 
@@ -109,9 +113,19 @@ export default function WorkerProfilePage() {
         {/* Contact & CTA */}
         <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
           {workerUser?.phone && (
-            <a href={`tel:${workerUser.phone}`} className="btn-secondary flex items-center justify-center gap-2 flex-1">
-              <HiPhone className="w-4 h-4" /> {workerUser.phone}
-            </a>
+            <>
+              <a href={SMSService.initiateCall(workerUser.phone)} className="btn-secondary flex items-center justify-center gap-2 flex-1">
+                <HiPhone className="w-4 h-4" /> Call
+              </a>
+              <a 
+                href={WhatsAppService.sendInquiry(workerUser.phone, workerUser?.name, requestData.serviceType)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary flex items-center justify-center gap-2 flex-1 bg-green-500 hover:bg-green-600 text-white border-green-500"
+              >
+                💬 WhatsApp
+              </a>
+            </>
           )}
           {user?.role !== 'worker' && user?.role !== 'admin' && (
             <button

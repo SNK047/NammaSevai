@@ -21,19 +21,28 @@ const app = express();
 connectDB();
 
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true,
+  origin: ['https://frontend-gamma-gilt-42.vercel.app', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 }));
 
 // Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: { error: 'Too many requests, please try again later.' },
 });
-app.use('/api/', limiter);
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many login attempts, please try again later.' },
+});
+app.use('/api/', generalLimiter);
+app.use('/api/auth/', authLimiter);
 
 // Body Parser
 app.use(express.json({ limit: '10mb' }));
@@ -52,6 +61,9 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Handle preflight
+app.options('*', cors());
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { HiLocationMarker, HiBriefcase, HiStar } from 'react-icons/hi';
+import { HiLocationMarker, HiBriefcase, HiStar, HiLightningBolt } from 'react-icons/hi';
 import { Avatar, AvailabilityBadge } from '../common';
 
 export default function WorkerCard({ worker }) {
@@ -15,10 +15,10 @@ export default function WorkerCard({ worker }) {
         <div className="flex items-start gap-3 mb-4">
           <Avatar src={user?.avatar} name={user?.name} size="lg" />
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary-600 transition-colors">
+            <h3 className="font-semibold text-stone-800 dark:text-white truncate group-hover:text-primary-600 transition-colors">
               {user?.name}
             </h3>
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs mt-0.5">
+            <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs mt-0.5">
               <HiLocationMarker className="w-3 h-3" />
               <span className="truncate">{user?.city || user?.location?.city || 'Location not set'}</span>
             </div>
@@ -36,21 +36,26 @@ export default function WorkerCard({ worker }) {
             </span>
           ))}
           {skills?.length > 3 && (
-            <span className="badge bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs">+{skills.length - 3}</span>
+            <span className="badge bg-stone-100 dark:bg-stone-700 text-stone-500 text-xs">+{skills.length - 3}</span>
           )}
         </div>
 
         {/* Footer stats */}
-        <div className="flex items-center justify-between text-sm border-t border-gray-50 dark:border-gray-700 pt-3">
-          <div className="flex items-center gap-1 text-yellow-500">
+        <div className="flex items-center justify-between text-sm border-t border-stone-100 dark:border-stone-700 pt-3">
+          <div className="flex items-center gap-1 text-amber-500">
             <HiStar className="w-4 h-4" />
-            <span className="font-semibold text-gray-800 dark:text-gray-200">{avgRating.toFixed(1)}</span>
-            <span className="text-gray-400 text-xs">({count})</span>
+            <span className="font-semibold text-stone-800 dark:text-stone-200">{avgRating.toFixed(1)}</span>
+            <span className="text-stone-400 text-xs">({count})</span>
           </div>
-          <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs">
+          <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs">
             <HiBriefcase className="w-3.5 h-3.5" />
             <span>{experience}yr exp.</span>
           </div>
+          {worker.hourly_rate > 0 && (
+            <span className="text-primary-600 dark:text-primary-400 text-xs font-medium">
+              ₹{worker.hourly_rate}/hr
+            </span>
+          )}
           <span className="text-primary-600 dark:text-primary-400 text-xs font-medium group-hover:underline">
             View Profile →
           </span>

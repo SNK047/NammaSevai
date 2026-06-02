@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { createClient } = require('@supabase/supabase-js');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -10,11 +10,13 @@ const supabase = createClient(
 
 const MONGODB_URI = 'mongodb://localhost:27017/nammasevai';
 
-// Convert MongoDB ObjectId to a valid UUID format
-function objectIdToUuid(objId) {
-  const str = objId.toString();
-  // Create a deterministic UUID from the ObjectId string
-  return uuidv4(str);
+function objectIdToUuid(str) {
+  const hash = crypto.createHash('sha1').update(str).digest('hex');
+  const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c, i) => {
+    const v = (parseInt(hash[i], 16) || 0) % 16;
+    return c === 'x' ? v.toString(16) : (v & 0x3 | 0x8).toString(16);
+  });
+  return uuid;
 }
 
 async function migrate() {
@@ -34,8 +36,9 @@ async function migrate() {
     console.log(`   Found ${users.length} users`);
 
     for (const u of users) {
-      const newId = objectIdToUuid(u._id);
-      userIdMap.set(u._id.toString(), newId);
+      const idStr = u._id.toString();
+      const newId = objectIdToUuid(idStr);
+      userIdMap.set(idStr, newId);
       
       await supabase.from('users').upsert([{
         id: newId,
@@ -64,17 +67,19 @@ async function migrate() {
     const workers = await mongoose.connection.db.collection('workers').find().toArray();
     console.log(`   Found ${workers.length} workers`);
 
+    const workerRecords = [];
     let workerCount = 0;
     for (const w of workers) {
+      const idStr = w._id.toString();
       const oldUserId = w.user ? w.user.toString() : null;
       const newUserId = oldUserId ? userIdMap.get(oldUserId) : null;
       
       if (!newUserId) continue;
 
-      const newWorkerId = objectIdToUuid(w._id);
-      workerIdMap.set(w._id.toString(), newWorkerId);
+      const newWorkerId = objectIdToUuid(idStr);
+      workerIdMap.set(idStr, newWorkerId);
       
-      await supabase.from('workers').upsert([{
+      workerRecords.push({
         id: newWorkerId,
         user_id: newUserId,
         skills: w.skills || [],
@@ -91,8 +96,14 @@ async function migrate() {
         service_city: w.serviceArea?.city || null,
         service_radius: w.serviceArea?.radius || 10,
         created_at: w.createdAt || new Date()
-      }], { onConflict: 'id' });
+      });
       workerCount++;
+    }
+    
+    for (let i = 0; i < workerRecords.length; i += 100) {
+      const batch = workerRecords.slice(i, i + 100);
+      await supabase.from('workers').upsert(batch, { onConflict: 'id' });
+      if ((i + 100) % 500 === 0) console.log(`   ✅ Inserted ${i + 100} workers...`);
     }
     console.log(`   ✅ Inserted ${workerCount} workers`);
 
@@ -102,6 +113,7 @@ async function migrate() {
     console.log(`   Found ${serviceRequests.length} service requests`);
 
     let requestCount = 0;
+    const requestRecords = [];
     for (const sr of serviceRequests) {
       const oldUserId = sr.user ? sr.user.toString() : null;
       const oldWorkerId = sr.worker ? sr.worker.toString() : null;
@@ -110,8 +122,8 @@ async function migrate() {
       
       if (!newUserId || !newWorkerId) continue;
 
-      await supabase.from('service_requests').upsert([{
-        id: objectIdToUuid(sr._id),
+      requestRecords.push({
+        id: objectIdToUuid(sr._id.toString()),
         user_id: newUserId,
         worker_id: newWorkerId,
         service_type: sr.serviceType,
@@ -124,8 +136,11 @@ async function migrate() {
         notes: sr.notes || null,
         completed_at: sr.completedAt || null,
         created_at: sr.createdAt || new Date()
-      }], { onConflict: 'id' });
+      });
       requestCount++;
+    }
+    if (requestRecords.length > 0) {
+      await supabase.from('service_requests').upsert(requestRecords, { onConflict: 'id' });
     }
     console.log(`   ✅ Inserted ${requestCount} service requests`);
 
@@ -135,6 +150,7 @@ async function migrate() {
     console.log(`   Found ${reviews.length} reviews`);
 
     let reviewCount = 0;
+    const reviewRecords = [];
     for (const r of reviews) {
       const oldUserId = r.user ? r.user.toString() : null;
       const oldWorkerId = r.worker ? r.worker.toString() : null;
@@ -143,16 +159,19 @@ async function migrate() {
       
       if (!newUserId || !newWorkerId) continue;
 
-      await supabase.from('reviews').upsert([{
-        id: objectIdToUuid(r._id),
+      reviewRecords.push({
+        id: objectIdToUuid(r._id.toString()),
         user_id: newUserId,
         worker_id: newWorkerId,
         service_request_id: null,
         rating: r.rating,
         comment: r.comment || null,
         created_at: r.createdAt || new Date()
-      }], { onConflict: 'id' });
+      });
       reviewCount++;
+    }
+    if (reviewRecords.length > 0) {
+      await supabase.from('reviews').upsert(reviewRecords, { onConflict: 'id' });
     }
     console.log(`   ✅ Inserted ${reviewCount} reviews`);
 
@@ -162,14 +181,15 @@ async function migrate() {
     console.log(`   Found ${complaints.length} complaints`);
 
     let complaintCount = 0;
+    const complaintRecords = [];
     for (const c of complaints) {
       const oldUserId = c.user ? c.user.toString() : null;
       const newUserId = oldUserId ? userIdMap.get(oldUserId) : null;
       
       if (!newUserId) continue;
 
-      await supabase.from('complaints').upsert([{
-        id: objectIdToUuid(c._id),
+      complaintRecords.push({
+        id: objectIdToUuid(c._id.toString()),
         user_id: newUserId,
         title: c.title,
         category: c.category,
@@ -186,8 +206,11 @@ async function migrate() {
         is_public: c.isPublic !== false,
         upvotes: [],
         created_at: c.createdAt || new Date()
-      }], { onConflict: 'id' });
+      });
       complaintCount++;
+    }
+    if (complaintRecords.length > 0) {
+      await supabase.from('complaints').upsert(complaintRecords, { onConflict: 'id' });
     }
     console.log(`   ✅ Inserted ${complaintCount} complaints`);
 

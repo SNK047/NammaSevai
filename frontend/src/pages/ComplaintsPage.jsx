@@ -37,7 +37,7 @@ export default function ComplaintsPage() {
     if (!isAuthenticated) return toast.error('Please login to upvote');
     try {
       const { data } = await complaintAPI.upvote(id);
-      setComplaints((prev) => prev.map((c) => (c.id === id || c._id === id) ? { ...c, upvotes: Array(data.upvotes).fill(null) } : c));
+      setComplaints((prev) => prev.map((c) => (c.id === id || c._id === id) ? { ...c, upvotes: Array(data.upvotes || c.upvotes?.length || 0).fill(null) } : c));
     } catch {
       toast.error('Failed to upvote');
     }

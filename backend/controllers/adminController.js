@@ -77,16 +77,23 @@ exports.getDashboard = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const { role, page = 1, limit = 20 } = req.query;
+    const from = (parseInt(page) - 1) * parseInt(limit);
+    const to = from + parseInt(limit) - 1;
     
-    let query = supabase.from('users').select('*').order('created_at', { ascending: false });
-    if (role) query = query.eq('role', role);
+    let countQuery = supabase.from('users').select('*', { count: 'exact', head: true });
+    let dataQuery = supabase.from('users').select('*').order('created_at', { ascending: false });
+    if (role) {
+      countQuery = countQuery.eq('role', role);
+      dataQuery = dataQuery.eq('role', role);
+    }
 
-    const { data: users, count } = await query.range(
-      (parseInt(page) - 1) * parseInt(limit),
-      parseInt(page) * parseInt(limit) - 1
-    );
+    const { count, error: countError } = await countQuery;
+    if (countError) throw countError;
 
-    res.json({ success: true, users: users || [], pagination: { total: count || 0, page: parseInt(page) } });
+    const { data: users, error } = await dataQuery.range(from, to);
+    if (error) throw error;
+
+    res.json({ success: true, users: users || [], pagination: { total: count || 0, page: parseInt(page), pages: Math.ceil((count || 0) / parseInt(limit)) } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -115,14 +122,22 @@ exports.approveWorker = async (req, res) => {
 exports.getAllWorkers = async (req, res) => {
   try {
     const { approved, page = 1, limit = 20 } = req.query;
+    const from = (parseInt(page) - 1) * parseInt(limit);
+    const to = from + parseInt(limit) - 1;
 
-    let query = supabase.from('workers').select('*').order('created_at', { ascending: false });
-    if (approved !== undefined) query = query.eq('is_approved', approved === 'true');
+    let countQuery = supabase.from('workers').select('*', { count: 'exact', head: true });
+    let dataQuery = supabase.from('workers').select('*').order('created_at', { ascending: false });
+    if (approved !== undefined) {
+      const isApproved = approved === 'true';
+      countQuery = countQuery.eq('is_approved', isApproved);
+      dataQuery = dataQuery.eq('is_approved', isApproved);
+    }
 
-    const { data: workers, count } = await query.range(
-      (parseInt(page) - 1) * parseInt(limit),
-      parseInt(page) * parseInt(limit) - 1
-    );
+    const { count, error: countError } = await countQuery;
+    if (countError) throw countError;
+
+    const { data: workers, error } = await dataQuery.range(from, to);
+    if (error) throw error;
 
     const workersWithUser = await Promise.all(
       (workers || []).map(async (w) => {
@@ -131,7 +146,7 @@ exports.getAllWorkers = async (req, res) => {
       })
     );
 
-    res.json({ success: true, workers: workersWithUser, pagination: { total: count || 0 } });
+    res.json({ success: true, workers: workersWithUser, pagination: { total: count || 0, page: parseInt(page), pages: Math.ceil((count || 0) / parseInt(limit)) } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

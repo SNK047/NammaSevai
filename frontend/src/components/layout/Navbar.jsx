@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  FiMenu, FiX, FiUser, FiLogOut, FiHome, FiTool,
+  FiMenu, FiX, FiLogOut, FiHome, FiTool,
   FiAlertCircle, FiGrid, FiSun, FiMoon, FiChevronDown, FiGlobe
 } from 'react-icons/fi';
 import useAuthStore from '../../context/authStore';
@@ -47,20 +47,18 @@ export default function Navbar() {
   const dashLink = getDashboardLink();
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img 
-              src="/nammasevai_logo.png" 
-              alt="NammaSevai" 
-              className="w-10 h-10 object-contain"
-            />
+            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+              <span className="text-white font-bold text-lg">N</span>
+            </div>
             <div className="hidden sm:block">
-              <span className="font-bold text-lg text-gray-900 dark:text-white">NammaSevai</span>
-              <span className="block text-xs text-gray-400 leading-none -mt-0.5">நம்ம சேவை</span>
+              <span className="font-bold text-lg text-stone-800 dark:text-white">NammaSevai</span>
+              <span className="block text-xs text-stone-500 dark:text-stone-400 leading-none -mt-0.5">நம்ம சேவை</span>
             </div>
           </Link>
 
@@ -73,7 +71,7 @@ export default function Navbar() {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   isActive(link.to)
                     ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
                 }`}
               >
                 {link.icon}
@@ -97,7 +95,7 @@ export default function Navbar() {
             {/* Dark mode toggle */}
             <button
               onClick={toggleDark}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              className="p-2 rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all"
               aria-label="Toggle dark mode"
             >
               {dark ? <FiSun size={18} /> : <FiMoon size={18} />}
@@ -107,28 +105,28 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                  className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all"
                 >
-                  <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md">
                     {user?.name?.charAt(0).toUpperCase()}
                   </div>
-                  <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[100px] truncate">
+                  <span className="hidden sm:block text-sm font-medium text-stone-700 dark:text-stone-200 max-w-[100px] truncate">
                     {user?.name}
                   </span>
-                  <FiChevronDown size={14} className="text-gray-400" />
+                  <FiChevronDown size={14} className="text-stone-400" />
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 animate-fade-in">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user?.name}</p>
-                      <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-stone-800 rounded-xl shadow-xl border border-stone-100 dark:border-stone-700 py-2 animate-fade-in">
+                    <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-700">
+                      <p className="text-sm font-semibold text-stone-900 dark:text-white truncate">{user?.name}</p>
+                      <p className="text-xs text-stone-500 capitalize">{user?.role}</p>
                     </div>
                     {dashLink && (
                       <Link
                         to={dashLink.to}
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700"
                       >
                         <FiGrid size={15} /> {dashLink.label}
                       </Link>
@@ -144,10 +142,10 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="hidden md:flex items-center gap-2">
-                <Link to="/login" className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all">
+                <Link to="/login" className="px-4 py-2 text-sm font-semibold text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-all">
                   {t('login')}
                 </Link>
-                <Link to="/register" className="px-4 py-2 text-sm font-semibold bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-all active:scale-95">
+                <Link to="/register" className="px-4 py-2 text-sm font-semibold bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-all active:scale-95 shadow-md">
                   {t('getStarted')}
                 </Link>
               </div>
@@ -156,7 +154,7 @@ export default function Navbar() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="md:hidden p-2 rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
             >
               {menuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
             </button>
@@ -166,7 +164,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-4 py-3 space-y-1 animate-slide-up">
+        <div className="md:hidden bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 px-4 py-3 space-y-1 animate-slide-up">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -175,7 +173,7 @@ export default function Navbar() {
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 isActive(link.to)
                   ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600'
-                  : 'text-gray-700 dark:text-gray-300'
+                  : 'text-stone-700 dark:text-stone-300'
               }`}
             >
               {link.icon} {link.label}

@@ -1,1 +1,4 @@
- https://nammasevai.pages.dev
+Frontend: https://frontend-gamma-gilt-42.vercel.app
+Backend: https://backend-eight-rho-72.vercel.app
+PWA: Enabled (offline capability)
+WhatsApp: Integrated

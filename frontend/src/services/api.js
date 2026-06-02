@@ -1,11 +1,15 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'https://backend-eight-rho-72.vercel.app';
 
 const api = axios.create({
-  baseURL: API_URL || '/api',
+  baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 });
+
+// Add withCredentials for cross-origin requests
+api.defaults.withCredentials = false;
 
 // Attach access token to every request
 api.interceptors.request.use((config) => {

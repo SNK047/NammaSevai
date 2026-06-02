@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 const CATEGORY_DATA = {
   SkilledTrades: {
     name: 'Skilled Trades & Technical',
-    icon: '🔧',
+    icon: '⚙️',
     skills: ['Electrician', 'Plumber', 'Carpenter', 'Mechanic', 'Welder', 'Mason', 'Painter', 'Blacksmith', 'HVAC Technician', 'Roofer', 'Tailor', 'Driver', 'Machine Operator']
   },
   Education: {
@@ -30,7 +30,7 @@ const CATEGORY_DATA = {
   },
   Construction: {
     name: 'Construction & Infrastructure',
-    icon: '🚧',
+    icon: '🏗️',
     skills: ['Civil Engineer', 'Surveyor', 'Site Supervisor', 'Heavy Equipment Operator', 'Road Worker', 'Architect']
   },
   RetailServices: {
@@ -56,21 +56,6 @@ const CATEGORY_DATA = {
 };
 
 const ALL_SKILLS = Object.values(CATEGORY_DATA).flatMap(cat => cat.skills);
-
-const getCategoryName = (key) => {
-  const names = {
-    SkilledTrades: 'திறமையான தொழில்கள்',
-    Education: 'கல்வி & பயிற்சி',
-    Healthcare: 'மருத்துவம் & பராமரிப்பு',
-    FoodHospitality: 'உணவு & உதவி',
-    Construction: 'கட்டுமானம்',
-    RetailServices: 'சேவைகள்',
-    Agriculture: 'விவசாயம்',
-    Technology: 'தகவல் தொழில்',
-    CreativeMedia: 'படைப்பாளர்கள்'
-  };
-  return names[key] || key;
-};
 
 export default function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -157,8 +142,8 @@ export default function ServicesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">{t('findServiceProviders')}</h1>
-        <p className="text-gray-500 dark:text-gray-400">
+        <h1 className="text-2xl md:text-3xl font-bold text-stone-800 dark:text-white mb-1">{t('findServiceProviders')}</h1>
+        <p className="text-stone-500 dark:text-stone-400">
           {loading ? t('loading') : `${pagination.total || 0} ${t('verifiedWorkersAvailable')}`}
         </p>
       </div>
@@ -168,7 +153,7 @@ export default function ServicesPage() {
         <div className="flex gap-2 flex-nowrap min-w-max pb-2">
           <button
             onClick={() => { setActiveCategory(null); handleFilterChange('skill', ''); }}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${!activeCategory && !filters.skill ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-900'}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${!activeCategory && !filters.skill ? 'bg-primary-500 text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-primary-100 dark:hover:bg-primary-900'}`}
           >
             {t('allCategory')}
           </button>
@@ -176,10 +161,10 @@ export default function ServicesPage() {
             <button
               key={key}
               onClick={() => handleCategoryClick(key)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${activeCategory === key ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-900'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${activeCategory === key ? 'bg-primary-500 text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-primary-100 dark:hover:bg-primary-900'}`}
             >
               <span>{cat.icon}</span>
-              <span className="hidden sm:inline">{language === 'ta' ? getCategoryName(key) : cat.name}</span>
+              <span className="hidden sm:inline">{cat.name}</span>
             </button>
           ))}
         </div>
@@ -188,7 +173,7 @@ export default function ServicesPage() {
       {/* Skills by Category */}
       {activeCategory && (
         <div className="card mb-6 animate-slide-up">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <h3 className="font-semibold mb-3 flex items-center gap-2 text-stone-800 dark:text-white">
             <span className="text-xl">{CATEGORY_DATA[activeCategory].icon}</span>
             <span>{CATEGORY_DATA[activeCategory].name}</span>
           </h3>
@@ -197,7 +182,7 @@ export default function ServicesPage() {
               <button
                 key={skill}
                 onClick={() => handleSkillClick(skill)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filters.skill === skill ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-900'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filters.skill === skill ? 'bg-primary-500 text-white' : 'bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-primary-100 dark:hover:bg-primary-900'}`}
               >
                 {skill}
               </button>
@@ -209,24 +194,24 @@ export default function ServicesPage() {
       {/* Search + Filter Bar */}
       <div className="flex gap-3 mb-6">
         <div className="flex-1 relative">
-          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 w-5 h-5" />
           <input
             type="text"
             value={filters.city}
             onChange={(e) => handleFilterChange('city', e.target.value)}
-            placeholder="Search by city or area..."
+            placeholder={t('searchByCity')}
             className="input-field pl-12"
           />
         </div>
         <button
           onClick={() => setShowFilter(!showFilter)}
-          className={`flex items-center gap-2 px-4 py-3 rounded-xl border font-medium text-sm transition-all ${showFilter || activeFilterCount > 0 ? 'bg-primary-500 text-white border-primary-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'}`}
+          className={`flex items-center gap-2 px-4 py-3 rounded-xl border font-medium text-sm transition-all ${showFilter || activeFilterCount > 0 ? 'bg-primary-500 text-white border-primary-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200'}`}
         >
           <HiFilter className="w-4 h-4" />
-          Filters {activeFilterCount > 0 && <span className="bg-white text-primary-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">{activeFilterCount}</span>}
+          {t('filters')} {activeFilterCount > 0 && <span className="bg-white text-primary-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">{activeFilterCount}</span>}
         </button>
         {activeFilterCount > 0 && (
-          <button onClick={clearFilters} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-red-500 transition-colors">
+          <button onClick={clearFilters} className="p-3 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-red-500 transition-colors">
             <HiRefresh className="w-5 h-5" />
           </button>
         )}
@@ -237,28 +222,28 @@ export default function ServicesPage() {
         <div className="card mb-6 animate-slide-up">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="label">Service Type</label>
+              <label className="label">{t('serviceType')}</label>
               <select value={filters.skill} onChange={(e) => handleFilterChange('skill', e.target.value)} className="input-field">
-                <option value="">All Services</option>
+                <option value="">{t('allServices')}</option>
                 {ALL_SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Availability</label>
+              <label className="label">{t('availability')}</label>
               <select value={filters.availability} onChange={(e) => handleFilterChange('availability', e.target.value)} className="input-field">
-                <option value="">Any</option>
-                <option value="available">Available Now</option>
-                <option value="busy">Busy</option>
-                <option value="offline">Offline</option>
+                <option value="">{t('any')}</option>
+                <option value="available">{t('availableNow')}</option>
+                <option value="busy">{t('busy')}</option>
+                <option value="offline">{t('offline')}</option>
               </select>
             </div>
             <div>
-              <label className="label">Minimum Rating</label>
+              <label className="label">{t('minimumRating')}</label>
               <select value={filters.minRating} onChange={(e) => handleFilterChange('minRating', e.target.value)} className="input-field">
-                <option value="">Any Rating</option>
-                <option value="5">5★ Only</option>
-                <option value="4">4★ & above</option>
-                <option value="3">3★ & above</option>
+                <option value="">{t('anyRating')}</option>
+                <option value="5">{t('above4Star')} (5★)</option>
+                <option value="4">{t('above4Star')}</option>
+                <option value="3">{t('above3Star')}</option>
               </select>
             </div>
           </div>
@@ -270,15 +255,15 @@ export default function ServicesPage() {
         <div className="flex gap-2 flex-wrap mb-6">
           <button
             onClick={() => handleFilterChange('skill', '')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!filters.skill ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-primary-300'}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!filters.skill ? 'bg-primary-500 text-white' : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 hover:border-primary-300'}`}
           >
-            All
+            {t('allServices')}
           </button>
           {ALL_SKILLS.slice(0, 8).map((skill) => (
             <button
               key={skill}
               onClick={() => handleFilterChange('skill', filters.skill === skill ? '' : skill)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filters.skill === skill ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-primary-300'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filters.skill === skill ? 'bg-primary-500 text-white' : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 hover:border-primary-300'}`}
             >
               {skill}
             </button>
@@ -294,9 +279,9 @@ export default function ServicesPage() {
       ) : workers.length === 0 ? (
         <EmptyState
           icon="🔍"
-          title="No workers found"
-          message="Try adjusting your filters or search in a different area."
-          action={<button onClick={clearFilters} className="btn-primary">Clear Filters</button>}
+          title={t('noWorkersFound')}
+          message={t('tryAdjustingFilters')}
+          action={<button onClick={clearFilters} className="btn-primary">{t('clearFilters')}</button>}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -306,11 +291,11 @@ export default function ServicesPage() {
 
       {/* Pagination with Prev/Next */}
       {pagination.pages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-10">
+        <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
           <button
             onClick={() => handlePageChange(filters.page - 1)}
             disabled={filters.page === 1}
-            className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium transition-all ${filters.page === 1 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-primary-300'}`}
+            className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium transition-all ${filters.page === 1 ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed' : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-200 border border-stone-200 dark:border-stone-700 hover:border-primary-300'}`}
           >
             <HiChevronLeft className="w-4 h-4" />
             {t('previous')}
@@ -321,7 +306,7 @@ export default function ServicesPage() {
               <button
                 key={pageNum}
                 onClick={() => handlePageChange(pageNum)}
-                className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${filters.page === pageNum ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-primary-300'}`}
+                className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${filters.page === pageNum ? 'bg-primary-500 text-white' : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-200 border border-stone-200 dark:border-stone-700 hover:border-primary-300'}`}
               >
                 {pageNum}
               </button>
@@ -331,14 +316,14 @@ export default function ServicesPage() {
           <button
             onClick={() => handlePageChange(filters.page + 1)}
             disabled={filters.page === pagination.pages}
-            className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium transition-all ${filters.page === pagination.pages ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-primary-300'}`}
+            className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium transition-all ${filters.page === pagination.pages ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed' : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-200 border border-stone-200 dark:border-stone-700 hover:border-primary-300'}`}
           >
             {t('next')}
             <HiChevronRight className="w-4 h-4" />
           </button>
 
-          <span className="text-gray-500 text-sm ml-2">
-            {language === 'ta' ? `பக்கம் ${filters.page} / ${pagination.pages}` : `Page ${filters.page} of ${pagination.pages}`}
+          <span className="text-stone-500 text-sm ml-2">
+            {language === 'ta' ? `பக்கம் ${filters.page} / ${pagination.pages}` : t('pageOf').replace('{current}', filters.page).replace('{total}', pagination.pages)}
           </span>
         </div>
       )}

@@ -49,7 +49,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (activeTab === 'users') loadUsers();
-    if (activeTab === 'workers') loadWorkers('false'); // pending workers
+    if (activeTab === 'workers') loadWorkers(false); // pending workers
     if (activeTab === 'complaints') loadComplaints();
   }, [activeTab]);
 

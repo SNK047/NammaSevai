@@ -34,7 +34,14 @@ export default function ComplaintCard({ complaint, onUpvote }) {
 
       {/* Image if present */}
       {(complaint.imageURL || complaint.image_url) && (
-        <img src={complaint.imageURL || complaint.image_url} alt="Complaint" className="w-full h-32 object-cover rounded-xl mb-3" />
+        <div className="w-full h-32 rounded-xl mb-3 overflow-hidden bg-stone-100 dark:bg-stone-800">
+          <img 
+            src={complaint.imageURL || complaint.image_url} 
+            alt="Complaint" 
+            className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        </div>
       )}
 
       {/* Meta */}
